@@ -20,6 +20,7 @@ DEPS="git make gcc pkgconf \
       neovim \
       dbus \
       libxcb xcb-util-renderutil xcb-util-image libconfig \
+      meson ninja cmake \
       base-devel"
 
 AUR_DEPS="picom-ftlabs-git"
