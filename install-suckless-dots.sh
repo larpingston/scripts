@@ -17,6 +17,7 @@ DEPS="git make gcc pkgconf \
       meson ninja cmake \
       base-devel"
 
+AUR_HELPER_PKG="yay-bin"
 AUR_DEPS="picom-ftlabs-git"
 
 SUCKLESS_DIR="$HOME/suckless"
@@ -26,20 +27,35 @@ CONFIG_DIR="$HOME/.config"
 printf '\n==> Installing pacman dependencies...\n'
 $PRIV pacman -S --needed --noconfirm $DEPS
 
-printf '\n==> Installing AUR packages manually...\n'
+printf '\n==> Installing AUR helper and AUR packages...\n'
 AUR_BUILD_DIR="/tmp/aur-build-$$"
 mkdir -p "$AUR_BUILD_DIR"
 
 WRAPPER="/tmp/sudo-wrapper-$$"
-printf '#!/bin/sh\nexec %s "$@"\n' "$PRIV" > "$WRAPPER"
+cat > "$WRAPPER" <<EOF
+#!/bin/sh
+ARGS=
+for a in "\$@"; do
+    case "\$a" in
+        -k) continue ;;
+    esac
+    ARGS="\$ARGS '\$a'"
+done
+eval exec $PRIV \$ARGS
+EOF
 chmod +x "$WRAPPER"
 
-for pkg in $AUR_DEPS; do
-    printf '  -> Building %s\n' "$pkg"
-    git clone "https://aur.archlinux.org/${pkg}.git" "$AUR_BUILD_DIR/$pkg"
-    cd "$AUR_BUILD_DIR/$pkg"
+if ! command -v yay >/dev/null 2>&1; then
+    printf '  -> Building %s\n' "$AUR_HELPER_PKG"
+    git clone "https://aur.archlinux.org/${AUR_HELPER_PKG}.git" "$AUR_BUILD_DIR/$AUR_HELPER_PKG"
+    cd "$AUR_BUILD_DIR/$AUR_HELPER_PKG"
     SUDO="$WRAPPER" PACMAN=pacman makepkg -si --noconfirm --needed
     cd /
+fi
+
+for pkg in $AUR_DEPS; do
+    printf '  -> Installing %s with yay\n' "$pkg"
+    SUDO="$WRAPPER" yay -S --noconfirm --needed --removemake "$pkg"
 done
 
 rm -f "$WRAPPER"
