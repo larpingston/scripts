@@ -15,4 +15,4 @@ cd dmenu && $tool make clean install && cd ..
 cd dwmblocks && $tool make clean install && cd ..
 cd st && $tool make clean install && cd ..
 
-
+cp xinitrc-dwm.txt ~/.xinitrc-dwm
