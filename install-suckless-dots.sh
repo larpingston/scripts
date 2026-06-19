@@ -19,6 +19,7 @@ DEPS="git make gcc pkgconf \
       conky \
       neovim \
       dbus \
+      libxcb xcb-util-renderutil xcb-util-image libconfig \
       base-devel"
 
 AUR_DEPS="picom-ftlabs-git"
@@ -36,6 +37,8 @@ $PRIV pacman -S --needed --noconfirm $DEPS
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. Install AUR packages manually (no helper)
+#    Pre-installing all deps above means makepkg won't need to pull anything.
+#    We also pass PACMAN so makepkg uses the correct privilege tool if needed.
 # ══════════════════════════════════════════════════════════════════════════════
 printf '\n==> Installing AUR packages manually...\n'
 AUR_BUILD_DIR="/tmp/aur-build-$$"
@@ -45,7 +48,7 @@ for pkg in $AUR_DEPS; do
     printf '  -> Building %s\n' "$pkg"
     git clone "https://aur.archlinux.org/${pkg}.git" "$AUR_BUILD_DIR/$pkg"
     cd "$AUR_BUILD_DIR/$pkg"
-    makepkg -si --noconfirm --needed
+    PACMAN="$PRIV pacman" makepkg -si --noconfirm --needed
     cd /
 done
 
