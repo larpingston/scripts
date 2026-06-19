@@ -31,8 +31,9 @@ printf '\n==> Installing AUR helper and AUR packages...\n'
 AUR_BUILD_DIR="/tmp/aur-build-$$"
 mkdir -p "$AUR_BUILD_DIR"
 
-WRAPPER="/tmp/sudo-wrapper-$$"
-cat > "$WRAPPER" <<EOF
+SHIM_DIR="/tmp/sudo-shim-$$"
+mkdir -p "$SHIM_DIR"
+cat > "$SHIM_DIR/sudo" <<EOF
 #!/bin/sh
 ARGS=
 for a in "\$@"; do
@@ -43,22 +44,28 @@ for a in "\$@"; do
 done
 eval exec $PRIV \$ARGS
 EOF
-chmod +x "$WRAPPER"
+chmod +x "$SHIM_DIR/sudo"
+
+OLD_PATH="$PATH"
+PATH="$SHIM_DIR:$PATH"
+export PATH
 
 if ! command -v yay >/dev/null 2>&1; then
     printf '  -> Building %s\n' "$AUR_HELPER_PKG"
     git clone "https://aur.archlinux.org/${AUR_HELPER_PKG}.git" "$AUR_BUILD_DIR/$AUR_HELPER_PKG"
     cd "$AUR_BUILD_DIR/$AUR_HELPER_PKG"
-    SUDO="$WRAPPER" PACMAN=pacman makepkg -si --noconfirm --needed
+    PACMAN=pacman makepkg -si --noconfirm --needed
     cd /
 fi
 
 for pkg in $AUR_DEPS; do
     printf '  -> Installing %s with yay\n' "$pkg"
-    SUDO="$WRAPPER" yay -S --noconfirm --needed --removemake "$pkg"
+    yay -S --noconfirm --needed --removemake "$pkg"
 done
 
-rm -f "$WRAPPER"
+PATH="$OLD_PATH"
+export PATH
+rm -rf "$SHIM_DIR"
 rm -rf "$AUR_BUILD_DIR"
 
 printf '\n==> Setting up suckless programs in %s...\n' "$SUCKLESS_DIR"
